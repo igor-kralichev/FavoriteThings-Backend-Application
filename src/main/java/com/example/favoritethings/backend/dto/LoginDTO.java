@@ -3,7 +3,7 @@ package com.example.favoritethings.backend.dto;
 /**
  * DTO для аутентификации пользователя.
  */
-public class LoginRequest {
+public class LoginDTO {
 
     private String email;
     private String password;

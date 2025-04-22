@@ -7,8 +7,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
-import java.util.stream.Collectors;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Сервис для загрузки данных пользователя из базы.
@@ -28,10 +29,24 @@ public class CustomUserDetailsService implements UserDetailsService {
         if (!user.isEmailConfirmed()) {
             throw new UsernameNotFoundException("Email не подтверждён для пользователя: " + email);
         }
-        
-        return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(),
-                user.getRoles().stream()
-                    .map(role -> new SimpleGrantedAuthority(role.getName()))
-                    .collect(Collectors.toList()));
+
+        // Получаем единственную роль (может быть null)
+        if (user.getRole() != null) {
+            List<SimpleGrantedAuthority> authorities = List.of(
+                new SimpleGrantedAuthority(user.getRole().getName())
+            );
+            return new org.springframework.security.core.userdetails.User(
+                user.getEmail(),
+                user.getPassword(),
+                authorities
+            );
+        } else {
+            // Если роли нет, возвращаем без прав
+            return new org.springframework.security.core.userdetails.User(
+                user.getEmail(),
+                user.getPassword(),
+                Collections.emptyList()
+            );
+        }
     }
 }

@@ -1,8 +1,8 @@
-package com.example.favoritethings.backend.config; 
+package com.example.favoritethings.backend.config;
 
 import com.example.favoritethings.backend.security.CustomUserDetailsService;
 import com.example.favoritethings.backend.security.JwtAuthenticationFilter;
-import com.example.favoritethings.backend.security.JwtTokenProvider; // Добавляем импорт
+import com.example.favoritethings.backend.security.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -16,10 +16,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository; 
 
 /**
- * Конфигурация Spring Security для Spring Boot 3.4.3.
- * Используем SecurityFilterChain вместо устаревшего WebSecurityConfigurerAdapter.
+ * Конфигурация Spring Security
  */
 @Configuration
 @EnableWebSecurity
@@ -27,13 +27,13 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
-    private final JwtTokenProvider jwtTokenProvider; // Добавляем поле
+    private final JwtTokenProvider jwtTokenProvider;
 
     public SecurityConfig(CustomUserDetailsService userDetailsService, 
-                      JwtTokenProvider jwtTokenProvider) { 
-    this.userDetailsService = userDetailsService;
-    this.jwtTokenProvider = jwtTokenProvider;
-}
+                          JwtTokenProvider jwtTokenProvider) {
+        this.userDetailsService = userDetailsService;
+        this.jwtTokenProvider = jwtTokenProvider;
+    }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
@@ -41,24 +41,37 @@ public class SecurityConfig {
     }
     
     @Bean
-public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    http
-        .csrf(csrf -> csrf.disable())
-        .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(auth -> auth
-        .requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-            .anyRequest().authenticated()
-        )
-        .authenticationProvider(authenticationProvider())
-        .addFilterBefore(
-            new JwtAuthenticationFilter(jwtTokenProvider, userDetailsService), // Создаем фильтр через new
-            UsernamePasswordAuthenticationFilter.class
-        );
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            // Включаем CSRF с кастомным репозиторием
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                // публичные API‑эндпойнты
+                .requestMatchers("/api/auth/**").permitAll()
 
-    return http.build();
-}
+                // Swagger/OpenAPI
+                .requestMatchers(
+                "/v3/api-docs/**",
+                "/swagger-ui.html",
+                "/swagger-ui/**",
+                "/webjars/**"
+                ).permitAll()
 
+                // Админка
+                .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+
+                // всё остальное — только для аутентифицированных
+                .anyRequest().authenticated()
+            )
+            .authenticationProvider(authenticationProvider())
+            .addFilterBefore(
+                new JwtAuthenticationFilter(jwtTokenProvider),
+                UsernamePasswordAuthenticationFilter.class
+            );
+
+        return http.build();
+    }
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {

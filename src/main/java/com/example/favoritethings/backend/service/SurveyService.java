@@ -1,68 +1,79 @@
 package com.example.favoritethings.backend.service;
 
-import com.example.favoritethings.backend.dto.SurveyRequest;
+import com.example.favoritethings.backend.dto.SurveyDTO;
 import com.example.favoritethings.backend.entity.Survey;
 import com.example.favoritethings.backend.entity.User;
 import com.example.favoritethings.backend.repository.SurveyRepository;
-import com.example.favoritethings.backend.repository.UserRepository;
-
-import java.util.List;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Сервис для обработки данных опроса.
- */
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 public class SurveyService {
+
+    private static final Logger logger = LoggerFactory.getLogger(SurveyService.class);
 
     @Autowired
     private SurveyRepository surveyRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Transactional
+    public void saveSurvey(SurveyDTO surveyDTO) {
+        // Получаем текущего пользователя из SecurityContext
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = surveyRepository.findUserByEmail(username)
+            .orElseThrow(() -> new RuntimeException("Пользователь не найден: " + username));
 
-    public void saveSurvey(SurveyRequest surveyRequest) {
-        // Получаем email текущего аутентифицированного пользователя
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
-
+        // Мапим SurveyDTO в сущность Survey
         Survey survey = new Survey();
-        survey.setFavoriteFood(surveyRequest.getFavoriteFood());
-        survey.setFavoriteColor(surveyRequest.getFavoriteColor());
-        survey.setFavoriteSong(surveyRequest.getFavoriteSong());
-        survey.setFavoriteDate(surveyRequest.getFavoriteDate());
-        survey.setFavoriteNumber(surveyRequest.getFavoriteNumber());
+        survey.setFavoriteFood(surveyDTO.getFavoriteFood());
+        survey.setFavoriteColor(surveyDTO.getFavoriteColor());
+        survey.setFavoriteSong(surveyDTO.getFavoriteSong());
+        survey.setFavoriteDate(surveyDTO.getFavoriteDate());
+        survey.setFavoriteNumber(surveyDTO.getFavoriteNumber());
         survey.setUser(user);
 
+        // Сохраняем опрос
         surveyRepository.save(survey);
+        logger.info("Опрос сохранён для пользователя: {}", username);
     }
 
-    // Новый метод для поиска опросов по параметрам
-    public List<Survey> searchSurveys(String favoriteFood, String favoriteSong) {
-        if (favoriteFood != null && !favoriteFood.isEmpty() && favoriteSong != null && !favoriteSong.isEmpty()) {
-            return surveyRepository.findByFavoriteFoodContainingIgnoreCaseAndFavoriteSongContainingIgnoreCase(favoriteFood, favoriteSong);
-        } else if (favoriteFood != null && !favoriteFood.isEmpty()) {
-            return surveyRepository.findByFavoriteFoodContainingIgnoreCase(favoriteFood);
-        } else if (favoriteSong != null && !favoriteSong.isEmpty()) {
-            return surveyRepository.findByFavoriteSongContainingIgnoreCase(favoriteSong);
-        } else {
-            // Если параметры не заданы, возвращаем все опросы
-            return surveyRepository.findAll();
-        }
+    @Transactional(readOnly = true)
+    public List<SurveyDTO> searchSurveys(String favoriteFood, String favoriteSong) {
+        List<Survey> surveys = surveyRepository.findByFavoriteFoodAndFavoriteSong(favoriteFood, favoriteSong);
+        return surveys.stream()
+            .map(survey -> new SurveyDTO(
+                survey.getId(),
+                survey.getFavoriteFood(),
+                survey.getFavoriteColor(),
+                survey.getFavoriteSong(),
+                survey.getFavoriteDate(),
+                survey.getFavoriteNumber()
+            ))
+            .collect(Collectors.toList());
     }
 
-    public List<Survey> getUserSurveys() {
-        // Получаем email текущего аутентифицированного пользователя
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
-    
-        // Получаем все опросы, связанные с этим пользователем
-        return surveyRepository.findByUser(user);
+    @Transactional(readOnly = true)
+    public List<SurveyDTO> getUserSurveys() {
+        // Получаем текущего пользователя из SecurityContext
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = surveyRepository.findUserByEmail(username)
+            .orElseThrow(() -> new RuntimeException("Пользователь не найден: " + username));
+
+        return user.getSurveys().stream()
+            .map(survey -> new SurveyDTO(
+                survey.getId(),
+                survey.getFavoriteFood(),
+                survey.getFavoriteColor(),
+                survey.getFavoriteSong(),
+                survey.getFavoriteDate(),
+                survey.getFavoriteNumber()
+            ))
+            .collect(Collectors.toList());
     }
-    
 }

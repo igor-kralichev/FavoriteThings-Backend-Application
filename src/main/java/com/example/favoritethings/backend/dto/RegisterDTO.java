@@ -10,7 +10,7 @@ import jakarta.validation.constraints.Pattern;
 /**
  * DTO для регистрации пользователя.
  */
-public class RegisterRequest {
+public class RegisterDTO {
 
     @NotBlank(message = "ФИО не должно быть пустым")
     @Pattern(regexp = "^[А-ЯЁа-яё\\s]+$", message = "ФИО должно содержать только русские буквы и пробелы")

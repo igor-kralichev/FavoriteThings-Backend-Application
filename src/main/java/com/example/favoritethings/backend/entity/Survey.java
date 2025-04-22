@@ -20,8 +20,15 @@ public class Survey {
     private LocalDate favoriteDate;
     private Integer favoriteNumber;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(
+      name = "user_id",
+      nullable = false,
+      foreignKey = @ForeignKey(
+        name = "fk_surveys_user",
+        foreignKeyDefinition = "FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE"
+      )
+    )
     private User user;
 
     // Геттеры и сеттеры

@@ -4,7 +4,7 @@ package com.example.favoritethings.backend.entity;
 import jakarta.persistence.*;
 
 /**
- * Сущность роли пользователя (например, ROLE_USER, ROLE_ADMIN).
+ * Сущность роли пользователя (например, USER, ADMIN).
  */
 @Entity
 @Table(name = "roles")

@@ -3,29 +3,32 @@ package com.example.favoritethings.backend.dto;
 /**
  * Универсальный формат ответа API.
  */
-public class ApiResponse {
+public class ApiResponseDTO {
 
     private boolean success;
-    private String message;
+    private Object data; // Заменяем String message на Object data для универсальности
 
-    public ApiResponse() {}
+    public ApiResponseDTO() {}
 
-    public ApiResponse(boolean success, String message) {
+    public ApiResponseDTO(boolean success, Object data) {
         this.success = success;
-        this.message = message;
+        this.data = data;
     }
 
     // Геттеры и сеттеры
     public boolean isSuccess() {
         return success;
     }
+
     public void setSuccess(boolean success) {
         this.success = success;
     }
-    public String getMessage() {
-        return message;
+
+    public Object getData() {
+        return data;
     }
-    public void setMessage(String message) {
-        this.message = message;
+
+    public void setData(Object data) {
+        this.data = data;
     }
 }
